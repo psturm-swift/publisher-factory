@@ -57,8 +57,33 @@ final class CreateTests: XCTestCase {
             XCTAssertEqual(item.element, item.offset)
         }
     }
+    
+    func test_create_with_graceful_finish() {
+        let testValues = Array(1...10)
+        
+        let createPublisher = Create<Int, Never> { proxy in
+            let thread = Thread {
+                testValues.forEach { proxy.receive($0) }
+                proxy.receive(completion: .finished)
+            }
+            thread.start()
+            return AnyCancellable { thread.cancel() }
+        }
+        
+        var receivedValues: [Int] = []
+        let sink = createPublisher.collect().sink { values in
+            receivedValues = values
+        }
+        
+        Thread.sleep(forTimeInterval: 0.5)
+        XCTAssertEqual(receivedValues, testValues)
+        
+        // Needed to avoid compiler warning
+        sink.cancel()
+    }
 
     static var allTests = [
         ("test_create_with_cancellation", test_create_with_cancellation),
+        ("test_create_with_graceful_finish", test_create_with_graceful_finish)
     ]
 }
