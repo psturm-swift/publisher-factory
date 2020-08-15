@@ -57,38 +57,3 @@ fileprivate struct TestError: Error {
 }
 
 extension TestError: Equatable {}
-
-fileprivate class TestProxyDelegate<T, F: Error>: ProxyDelegate {
-    typealias Output = T
-    typealias Failure = F
-
-    var receivedValues: [Output] = []
-    var receivedCompletions: [Subscribers.Completion<F>] = []
-    
-    func receive(_ value: Output) {
-        receivedValues.append(value)
-    }
-    
-    func receive(completion: Subscribers.Completion<F>) {
-        receivedCompletions.append(completion)
-    }
-}
-
-fileprivate class TestProxyDelegateForwarder<T, F: Error>: ProxyDelegate {
-    typealias Output = T
-    typealias Failure = F
-
-    let delegate: TestProxyDelegate<T, F>
-    
-    init(delegate: TestProxyDelegate<T, F>) {
-        self.delegate = delegate
-    }
-    
-    func receive(_ value: Output) {
-        delegate.receive(value)
-    }
-    
-    func receive(completion: Subscribers.Completion<F>) {
-        delegate.receive(completion: completion)
-    }
-}
