@@ -46,3 +46,10 @@ class TestProxyDelegateForwarder<T, F: Error>: ProxyDelegate {
         delegate.receive(completion: completion)
     }
 }
+
+
+struct TestError: Error {
+    let id: Int
+}
+
+extension TestError: Equatable {}

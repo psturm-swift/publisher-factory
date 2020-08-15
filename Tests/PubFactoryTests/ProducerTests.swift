@@ -51,9 +51,3 @@ final class ProducerTests: XCTestCase {
         ("test_if_proxy_has_only_a_weak_reference_on_its_delegate", test_if_proxy_has_only_a_weak_reference_on_its_delegate)
     ]
 }
-
-fileprivate struct TestError: Error {
-    let id: Int
-}
-
-extension TestError: Equatable {}
