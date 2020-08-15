@@ -12,7 +12,6 @@ import XCTest
 @testable import PubFactory
 
 final class LocableTests: XCTestCase {
-    
     func test_correct_locking_with_synchronized_block() {
         let lock = LockCounter()
         
