@@ -11,7 +11,7 @@
 import Foundation
 import Combine
 
-public struct PublisherWithProducer<P: Producer>: Publisher {
+public struct WithProducer<P: Producer>: Publisher {
     public typealias ProducerType = P
     public typealias Output = P.Output
     public typealias Failure = P.Failure
@@ -30,7 +30,7 @@ public struct PublisherWithProducer<P: Producer>: Publisher {
     }
 }
 
-private extension PublisherWithProducer {
+private extension WithProducer {
     class Subscription<S: Subscriber>: Combine.Subscription
         where S.Input == Output, S.Failure == Failure
     {
@@ -85,7 +85,7 @@ private extension PublisherWithProducer {
     }
 }
 
-extension PublisherWithProducer.Subscription: ProxyDelegate {
+extension WithProducer.Subscription: ProxyDelegate {
     func receive(_ input: Output) {
         lock.synchronize {
             guard self.totalDemand > .none else { return }
