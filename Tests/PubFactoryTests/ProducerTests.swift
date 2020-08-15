@@ -47,7 +47,8 @@ final class ProducerTests: XCTestCase {
     }
     
     static var allTests = [
-        ("test_proxy_forwards_values", test_proxy_forwards_values)
+        ("test_proxy_forwards_values", test_proxy_forwards_values),
+        ("test_if_proxy_has_only_a_weak_reference_on_its_delegate", test_if_proxy_has_only_a_weak_reference_on_its_delegate)
     ]
 }
 
