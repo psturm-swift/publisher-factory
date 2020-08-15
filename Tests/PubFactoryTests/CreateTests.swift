@@ -31,11 +31,21 @@ final class CreateTests: XCTestCase {
             }
         }
         
+        // Block has not been called and thread is still nill
+        XCTAssertNil(thread)
+
         let sink = createPublisher.sink { value in
             receivedValues.append(value)
         }
+
+        // Block has been called and thread has been created
+        XCTAssertNotNil(thread)
         
-        Thread.sleep(forTimeInterval: 0.5)
+        // Sink is not blocking
+        XCTAssertTrue(thread?.isExecuting ?? false)
+
+        // Let publisher produce values for 100ms and then cancel subscription
+        Thread.sleep(forTimeInterval: 0.1)
         sink.cancel()
 
         // Wait for thread to get terminated (500ms)
