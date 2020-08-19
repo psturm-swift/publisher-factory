@@ -117,43 +117,42 @@ final class Counter: Producer {
 
 extension NSLock: Lockable {}
 
-final class SubscriberWithBackpressure: Subscriber {
+final class SubscriberWithManualDemand: Subscriber {
     typealias Input = Counter.Output
     typealias Failure = Never
-    let pause: DispatchTimeInterval
+    private let lock = NSRecursiveLock()
     var subscription: Subscription?
+    var currentDemand: Subscribers.Demand = .none
     var receivedElements: [Input] = []
-    var remainingDemand: [Int]
-    var receivedDemand: Int
-    var currentDemand: Int
+    private(set) var demandFulfilledExpectation: XCTestExpectation?
     let completionExpectation: XCTestExpectation?
     
-    init(demands: [Int], pause: DispatchTimeInterval, completionExpectation: XCTestExpectation? = nil) {
-        self.remainingDemand = demands
-        self.pause = pause
-        self.currentDemand = 0
-        self.receivedDemand = 0
+    init(demandFulfilledExpectation: XCTestExpectation? = nil, completionExpectation: XCTestExpectation? = nil) {
+        self.demandFulfilledExpectation = demandFulfilledExpectation
         self.completionExpectation = completionExpectation
     }
 
-    private func requestNextDemand() {
-        guard let currentDemand = remainingDemand.first else { return }
-        self.currentDemand = currentDemand
-        remainingDemand = Array(remainingDemand.dropFirst())
-        subscription?.request(.max(currentDemand))
+    func setDemandFulfilledExpectation(_ expectation: XCTestExpectation?) {
+        self.demandFulfilledExpectation = expectation
+    }
+    
+    func addDemand(_ demand: Subscribers.Demand) {
+        lock.synchronize {
+            currentDemand += demand
+            subscription?.request(demand)
+        }
     }
     
     func receive(subscription: Subscription) {
         self.subscription = subscription
-        requestNextDemand()
     }
     
     func receive(_ input: Input) -> Subscribers.Demand {
-        receivedElements.append(input)
-        currentDemand -= 1
-        if currentDemand == 0 {
-            DispatchQueue.main.asyncAfter(deadline: .now() + pause) {
-                self.requestNextDemand()
+        lock.synchronize {
+            receivedElements.append(input)
+            currentDemand -= 1
+            if currentDemand == 0 {
+                demandFulfilledExpectation?.fulfill()
             }
         }
         return .none

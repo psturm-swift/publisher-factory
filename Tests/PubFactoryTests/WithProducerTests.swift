@@ -13,29 +13,57 @@ import Combine
 @testable import PubFactory
 
 final class WithProducerTests: XCTestCase {
+    func test_if_producer_is_paused_if_demand_is_fulfilled_and_resumed_again() {
+        let producer = Counter(5)
+        let publisher = WithProducer(producer)
+        let demandExpectation = XCTestExpectation(description: "Demand fulfilled")
+        let completionExpectation = XCTestExpectation(description: "Completion")
+        let subscriber = SubscriberWithManualDemand(
+            demandFulfilledExpectation: demandExpectation,
+            completionExpectation: completionExpectation)
+        publisher.subscribe(subscriber)
+
+        subscriber.addDemand(.max(4))
+        wait(for: [demandExpectation], timeout: 5)
+        XCTAssertEqual(producer.callsToPause, 1)
+        XCTAssertEqual(producer.callsToResume, 0)
+
+        subscriber.addDemand(.max(2))
+        wait(for: [completionExpectation], timeout: 5)
+        XCTAssertEqual(producer.callsToPause, 1)
+        XCTAssertEqual(producer.callsToResume, 1)
+    }
+    
     func test_correct_backpressure_handling() {
         let demands = [4,2,5]
         let totalDemand = demands.reduce(0, +)
-        let expectation = XCTestExpectation(description: "Publisher terminates")
+        let completionExpectation = XCTestExpectation(description: "Publisher terminates")
         
         let producer = Counter(totalDemand)
         let publisher = WithProducer(producer)
-        let subscriber = SubscriberWithBackpressure(
-            demands: demands,
-            pause: .milliseconds(200),
-            completionExpectation: expectation)
+        let subscriber = SubscriberWithManualDemand(completionExpectation: completionExpectation)
         publisher.subscribe(subscriber)
-        
-        wait(for: [expectation], timeout: 5)
 
-        XCTAssertEqual(producer.callsToStart, 1)
-        XCTAssertEqual(producer.callsToPause, demands.count)
-        XCTAssertEqual(producer.callsToResume, demands.count - 1)
-        XCTAssertEqual(producer.callsToCancel, 0)
+        var expectedPauseCount = 1
+        
+        for demand in demands {
+            let expectation = XCTestExpectation(description: "Demand fulfilled")
+            subscriber.setDemandFulfilledExpectation(expectation)
+            subscriber.addDemand(.max(demand))
+            wait(for: [expectation], timeout: 5)
+
+            XCTAssertEqual(producer.callsToStart, 1)
+            XCTAssertEqual(producer.callsToCancel, 0)
+            XCTAssertEqual(producer.callsToPause, expectedPauseCount)
+            XCTAssertEqual(producer.callsToResume, expectedPauseCount - 1)
+            
+            expectedPauseCount += 1
+        }
         XCTAssertEqual(Array(0..<totalDemand), subscriber.receivedElements)
     }
-    
+
     static var allTests = [
+        ("test_if_producer_is_paused_if_demand_is_fulfilled_and_resumed_again", test_if_producer_is_paused_if_demand_is_fulfilled_and_resumed_again),
         ("test_correct_backpressure_handling", test_correct_backpressure_handling)
     ]
 }
