@@ -13,19 +13,17 @@ import Combine
 @testable import PubFactory
 
 final class WithProducerTests: XCTestCase {
-    // TODO:
-    // Add test: Producer can be paused
-    // Add test: Producer can be resumed
-    // Add test: Finish is handled correctly
-    
     func test_correct_backpressure_handling() {
         let demands = [4,2,5]
         let totalDemand = demands.reduce(0, +)
         let expectation = XCTestExpectation(description: "Publisher terminates")
         
-        let producer = TestCountingProducer(totalDemand)
+        let producer = Counter(totalDemand)
         let publisher = WithProducer(producer)
-        let subscriber = TestSubscriberWithBackpressure(demands: demands, pause: .milliseconds(200), expectation: expectation)
+        let subscriber = SubscriberWithBackpressure(
+            demands: demands,
+            pause: .milliseconds(200),
+            expectation: expectation)
         publisher.subscribe(subscriber)
         
         wait(for: [expectation], timeout: 5)

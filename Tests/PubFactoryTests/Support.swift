@@ -56,7 +56,7 @@ struct TestError: Error {
 
 extension TestError: Equatable {}
 
-final class TestCountingProducer: Producer {
+final class Counter: Producer {
     typealias Output = Int
     typealias Failure = Never
 
@@ -117,8 +117,8 @@ final class TestCountingProducer: Producer {
 
 extension NSLock: Lockable {}
 
-final class TestSubscriberWithBackpressure: Subscriber {
-    typealias Input = TestCountingProducer.Output
+final class SubscriberWithBackpressure: Subscriber {
+    typealias Input = Counter.Output
     typealias Failure = Never
     let pause: DispatchTimeInterval
     var subscription: Subscription?
@@ -126,9 +126,9 @@ final class TestSubscriberWithBackpressure: Subscriber {
     var remainingDemand: [Int]
     var receivedDemand: Int
     var currentDemand: Int
-    let expectation: XCTestExpectation
+    let expectation: XCTestExpectation?
     
-    init(demands: [Int], pause: DispatchTimeInterval, expectation: XCTestExpectation) {
+    init(demands: [Int], pause: DispatchTimeInterval, expectation: XCTestExpectation? = nil) {
         self.remainingDemand = demands
         self.pause = pause
         self.currentDemand = 0
@@ -160,7 +160,7 @@ final class TestSubscriberWithBackpressure: Subscriber {
     }
     
     func receive(completion: Subscribers.Completion<Never>) {
-        expectation.fulfill()
+        expectation?.fulfill()
     }
     
     func cancel() {
