@@ -23,7 +23,7 @@ final class WithProducerTests: XCTestCase {
         let subscriber = SubscriberWithBackpressure(
             demands: demands,
             pause: .milliseconds(200),
-            expectation: expectation)
+            completionExpectation: expectation)
         publisher.subscribe(subscriber)
         
         wait(for: [expectation], timeout: 5)

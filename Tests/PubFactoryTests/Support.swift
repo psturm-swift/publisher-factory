@@ -126,14 +126,14 @@ final class SubscriberWithBackpressure: Subscriber {
     var remainingDemand: [Int]
     var receivedDemand: Int
     var currentDemand: Int
-    let expectation: XCTestExpectation?
+    let completionExpectation: XCTestExpectation?
     
-    init(demands: [Int], pause: DispatchTimeInterval, expectation: XCTestExpectation? = nil) {
+    init(demands: [Int], pause: DispatchTimeInterval, completionExpectation: XCTestExpectation? = nil) {
         self.remainingDemand = demands
         self.pause = pause
         self.currentDemand = 0
         self.receivedDemand = 0
-        self.expectation = expectation
+        self.completionExpectation = completionExpectation
     }
 
     private func requestNextDemand() {
@@ -160,7 +160,7 @@ final class SubscriberWithBackpressure: Subscriber {
     }
     
     func receive(completion: Subscribers.Completion<Never>) {
-        expectation?.fulfill()
+        completionExpectation?.fulfill()
     }
     
     func cancel() {
