@@ -105,6 +105,7 @@ extension WithProducer.Subscription: ProxyDelegate {
             self.subscriber = nil
             self.totalDemand = .none
             self.producer = nil
+            self.producerState = .finished
             subscriber.receive(completion: completion)
         }
     }

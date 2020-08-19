@@ -10,6 +10,8 @@
 
 import Foundation
 import Combine
+import XCTest
+
 @testable import PubFactory
 
 class TestProxyDelegate<T, F: Error>: ProxyDelegate {
@@ -53,3 +55,116 @@ struct TestError: Error {
 }
 
 extension TestError: Equatable {}
+
+final class TestCountingProducer: Producer {
+    typealias Output = Int
+    typealias Failure = Never
+
+    var lock = NSLock()
+    var thread: Thread? = nil
+    var callsToStart: Int = 0
+    var callsToPause: Int = 0
+    var callsToResume: Int = 0
+    var callsToCancel: Int = 0
+    var counter: Int = 0
+    let maxCounter: Int
+    
+    init(_ maxCounter: Int) {
+        self.maxCounter = maxCounter
+    }
+    
+    func start(with proxy: Proxy<Int, Never>) {
+        callsToStart += 1
+        thread = Thread { [weak self] in
+            while !Thread.current.isCancelled {
+                guard let this = self else { return }
+                guard this.counter < this.maxCounter else {
+                    proxy.receive(completion: .finished)
+                    return
+                }
+                if !this.isPaused {
+                    proxy.receive(this.counter)
+                    this.counter += 1
+                }
+            }
+        }
+        thread?.start()
+    }
+    
+    private var isPaused: Bool {
+        lock.synchronize {
+            callsToPause > callsToResume
+        }
+    }
+    
+    func pause() {
+        lock.synchronize {
+            callsToPause += 1
+        }
+    }
+    
+    func resume() {
+        lock.synchronize {
+            callsToResume += 1
+        }
+    }
+    
+    func cancel() {
+        callsToCancel += 1
+        self.thread?.cancel()
+    }
+}
+
+extension NSLock: Lockable {}
+
+final class TestSubscriberWithBackpressure: Subscriber {
+    typealias Input = TestCountingProducer.Output
+    typealias Failure = Never
+    let pause: DispatchTimeInterval
+    var subscription: Subscription?
+    var receivedElements: [Input] = []
+    var remainingDemand: [Int]
+    var receivedDemand: Int
+    var currentDemand: Int
+    let expectation: XCTestExpectation
+    
+    init(demands: [Int], pause: DispatchTimeInterval, expectation: XCTestExpectation) {
+        self.remainingDemand = demands
+        self.pause = pause
+        self.currentDemand = 0
+        self.receivedDemand = 0
+        self.expectation = expectation
+    }
+
+    private func requestNextDemand() {
+        guard let currentDemand = remainingDemand.first else { return }
+        self.currentDemand = currentDemand
+        remainingDemand = Array(remainingDemand.dropFirst())
+        subscription?.request(.max(currentDemand))
+    }
+    
+    func receive(subscription: Subscription) {
+        self.subscription = subscription
+        requestNextDemand()
+    }
+    
+    func receive(_ input: Input) -> Subscribers.Demand {
+        receivedElements.append(input)
+        currentDemand -= 1
+        if currentDemand == 0 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + pause) {
+                self.requestNextDemand()
+            }
+        }
+        return .none
+    }
+    
+    func receive(completion: Subscribers.Completion<Never>) {
+        expectation.fulfill()
+    }
+    
+    func cancel() {
+        subscription?.cancel()
+        subscription = nil
+    }
+}
