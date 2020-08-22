@@ -15,12 +15,16 @@ public struct Create<T, F: Error>: Publisher {
     public typealias Output = T
     public typealias Failure = F
     
-    private let internalPublisher: WithProducer<ClosureProducer<T, F>>
+    private let internalPublisher: AnyPublisher<T,F>
     
     public init(closure: @escaping (Proxy<T, F>)->AnyCancellable) {
-        self.internalPublisher = WithProducer(ClosureProducer(closure))
+        self.internalPublisher = WithProducer(ClosureProducer(closure)).eraseToAnyPublisher()
     }
     
+    public init(closure: @escaping (Proxy<T, F>, ProducerState)->Void) {
+        self.internalPublisher = WithProducer(StatefulClosureProducer(closure)).eraseToAnyPublisher()
+    }
+
     public func receive<S>(subscriber: S)
         where S : Subscriber, Failure == S.Failure, Output == S.Input
     {
