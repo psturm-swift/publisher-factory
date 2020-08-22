@@ -17,11 +17,11 @@ final class CreateTests: XCTestCase {
         var receivedValues: [Int] = []
         var thread: Thread?
         
-        let createPublisher = Create<Int, Never> { proxy in
+        let createPublisher = Create<Int, Never> { subscriber in
             thread = Thread {
                 var i = 0
                 while (!Thread.current.isCancelled) {
-                    proxy.receive(i)
+                    subscriber.receive(i)
                     i += 1
                 }
             }
@@ -61,10 +61,10 @@ final class CreateTests: XCTestCase {
     func test_create_with_graceful_finish() {
         let testValues = Array(1...10)
         
-        let createPublisher = Create<Int, Never> { proxy in
+        let createPublisher = Create<Int, Never> { subscriber in
             let thread = Thread {
-                testValues.forEach { proxy.receive($0) }
-                proxy.receive(completion: .finished)
+                testValues.forEach { subscriber.receive($0) }
+                subscriber.receive(completion: .finished)
             }
             thread.start()
             return AnyCancellable { thread.cancel() }
@@ -87,11 +87,11 @@ final class CreateTests: XCTestCase {
         let totalDemand = demands.reduce(0, +)
 
         let cancellationExpectation = XCTestExpectation(description: "Create publisher cancelled")
-        let publisher = Create<Int, Never> { proxy, context in
+        let publisher = Create<Int, Never> { subscriber, context in
             var i = 0
             while !context.cancelled {
                 context.waitIfPaused()
-                proxy.receive(i)
+                subscriber.receive(i)
                 i += 1
             }
             cancellationExpectation.fulfill()
