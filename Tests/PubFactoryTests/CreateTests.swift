@@ -87,10 +87,10 @@ final class CreateTests: XCTestCase {
         let totalDemand = demands.reduce(0, +)
 
         let cancellationExpectation = XCTestExpectation(description: "Create publisher cancelled")
-        let publisher = Create<Int, Never> { proxy, state in
+        let publisher = Create<Int, Never> { proxy, context in
             var i = 0
-            while !state.cancelled {
-                state.waitIfPaused()
+            while !context.cancelled {
+                context.waitIfPaused()
                 proxy.receive(i)
                 i += 1
             }

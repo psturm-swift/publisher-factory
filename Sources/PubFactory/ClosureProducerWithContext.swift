@@ -23,7 +23,7 @@ final class ClosureProducerWithContext<O, F: Error>: Producer {
     typealias Closure = (Proxy<O, F>, Context)->Void
     
     private let closure: Closure
-    private let state = ProducerContext()
+    private let context = ProducerContext()
     private var thread: Thread? = nil
     
     init(_ closure: @escaping Closure) {
@@ -33,7 +33,7 @@ final class ClosureProducerWithContext<O, F: Error>: Producer {
     func start(with proxy: Proxy<O, F>) {
         let thread = Thread { [weak self] in
             guard let closure = self?.closure else { return }
-            guard let state = self?.state else { return }
+            guard let state = self?.context else { return }
             closure(proxy, state)
         }
         self.thread = thread
@@ -41,15 +41,15 @@ final class ClosureProducerWithContext<O, F: Error>: Producer {
     }
     
     func pause() {
-        state.pause()
+        context.pause()
     }
     
     func resume() {
-        state.resume()
+        context.resume()
     }
 
     func cancel() {
-        state.cancel()
+        context.cancel()
     }
 }
 
