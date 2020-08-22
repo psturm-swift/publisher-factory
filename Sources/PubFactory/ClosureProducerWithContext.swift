@@ -11,16 +11,16 @@
 import Foundation
 import Combine
 
-public protocol ProducerState {
+public protocol Context {
     var paused: Bool { get }
     var cancelled: Bool { get }
     func waitIfPaused()
 }
 
-final class StatefulClosureProducer<O, F: Error>: Producer {
+final class ClosureProducerWithContext<O, F: Error>: Producer {
     typealias Output = O
     typealias Failure = F
-    typealias Closure = (Proxy<O, F>, ProducerState)->Void
+    typealias Closure = (Proxy<O, F>, Context)->Void
     
     private let closure: Closure
     private let state = ProducerStateControl()
@@ -53,8 +53,8 @@ final class StatefulClosureProducer<O, F: Error>: Producer {
     }
 }
 
-extension StatefulClosureProducer {
-    final class ProducerStateControl: ProducerState {
+extension ClosureProducerWithContext {
+    final class ProducerStateControl: Context {
         enum State {
             case running
             case cancelled

@@ -21,8 +21,8 @@ public struct Create<T, F: Error>: Publisher {
         self.internalPublisher = WithProducer(ClosureProducer(closure)).eraseToAnyPublisher()
     }
     
-    public init(closure: @escaping (Proxy<T, F>, ProducerState)->Void) {
-        self.internalPublisher = WithProducer(StatefulClosureProducer(closure)).eraseToAnyPublisher()
+    public init(closure: @escaping (Proxy<T, F>, Context)->Void) {
+        self.internalPublisher = WithProducer(ClosureProducerWithContext(closure)).eraseToAnyPublisher()
     }
 
     public func receive<S>(subscriber: S)
