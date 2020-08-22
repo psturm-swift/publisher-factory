@@ -115,6 +115,7 @@ final class CreateTests: XCTestCase {
     
     static var allTests = [
         ("test_create_with_cancellation", test_create_with_cancellation),
-        ("test_create_with_graceful_finish", test_create_with_graceful_finish)
+        ("test_create_with_graceful_finish", test_create_with_graceful_finish),
+        ("test_if_create_publisher_is_paused_if_demand_is_fulfilled_and_resumed_again", test_if_create_publisher_is_paused_if_demand_is_fulfilled_and_resumed_again)
     ]
 }
