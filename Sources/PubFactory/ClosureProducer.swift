@@ -14,11 +14,11 @@ import Combine
 class ClosureProducer<O, F: Error>: Producer {
     typealias Output = O
     typealias Failure = F
-    
-    private let closure: (Proxy<Output, Failure>)->AnyCancellable
+    typealias Closure = (Proxy<Output, Failure>)->AnyCancellable
+    private let closure: Closure
     private var cancellable: AnyCancellable? = nil
     
-    init(_ closure: @escaping (Proxy<Output, Failure>)->AnyCancellable) {
+    init(_ closure: @escaping Closure) {
         self.closure = closure
     }
     
