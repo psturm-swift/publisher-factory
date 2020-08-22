@@ -30,3 +30,4 @@ extension Lockable {
 }
 
 extension NSRecursiveLock: Lockable {}
+extension NSCondition: Lockable {}
