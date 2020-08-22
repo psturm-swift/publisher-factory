@@ -23,7 +23,7 @@ final class ClosureProducerWithContext<O, F: Error>: Producer {
     typealias Closure = (Proxy<O, F>, Context)->Void
     
     private let closure: Closure
-    private let state = ProducerStateControl()
+    private let state = ProducerContext()
     private var thread: Thread? = nil
     
     init(_ closure: @escaping Closure) {
@@ -54,7 +54,7 @@ final class ClosureProducerWithContext<O, F: Error>: Producer {
 }
 
 extension ClosureProducerWithContext {
-    final class ProducerStateControl: Context {
+    final class ProducerContext: Context {
         enum State {
             case running
             case cancelled
