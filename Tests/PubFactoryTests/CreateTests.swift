@@ -86,11 +86,15 @@ final class CreateTests: XCTestCase {
         let demands = [4,2,5]
         let totalDemand = demands.reduce(0, +)
 
+        var pauseCount = 0
         let cancellationExpectation = XCTestExpectation(description: "Create publisher cancelled")
         let publisher = Create<Int, Never> { subscriber, context in
             var i = 0
             while !context.cancelled {
-                context.waitIfPaused()
+                if context.paused {
+                    pauseCount += 1
+                    context.waitIfPaused()
+                }
                 subscriber.receive(i)
                 i += 1
             }
@@ -100,12 +104,15 @@ final class CreateTests: XCTestCase {
         let subscriber = SubscriberWithManualDemand()
         publisher.subscribe(subscriber)
 
+        var expectedPauseCount = 0
         for demand in demands {
             let expectation = XCTestExpectation(description: "Demand fulfilled")
             subscriber.setDemandFulfilledExpectation(expectation)
-            Thread.sleep(forTimeInterval: 0.2)
             subscriber.addDemand(.max(demand))
             wait(for: [expectation], timeout: 5)
+            Thread.sleep(forTimeInterval: 0.1)
+            expectedPauseCount += 1
+            XCTAssertEqual(pauseCount, expectedPauseCount)
         }
         subscriber.cancel()
         wait(for: [cancellationExpectation], timeout: 5)
@@ -115,7 +122,6 @@ final class CreateTests: XCTestCase {
     
     static var allTests = [
         ("test_create_with_cancellation", test_create_with_cancellation),
-        ("test_create_with_graceful_finish", test_create_with_graceful_finish),
-        ("test_if_create_publisher_is_paused_if_demand_is_fulfilled_and_resumed_again", test_if_create_publisher_is_paused_if_demand_is_fulfilled_and_resumed_again)
+        ("test_create_with_graceful_finish", test_create_with_graceful_finish)
     ]
 }
