@@ -17,11 +17,11 @@ final class CreateTests: XCTestCase {
         var receivedValues: [Int] = []
         var thread: Thread?
         
-        let createPublisher = Create<Int, Never> { proxy in
+        let createPublisher = Create<Int, Never> { subscriber in
             thread = Thread {
                 var i = 0
                 while (!Thread.current.isCancelled) {
-                    proxy.receive(i)
+                    subscriber.receive(i)
                     i += 1
                 }
             }
@@ -61,10 +61,10 @@ final class CreateTests: XCTestCase {
     func test_create_with_graceful_finish() {
         let testValues = Array(1...10)
         
-        let createPublisher = Create<Int, Never> { proxy in
+        let createPublisher = Create<Int, Never> { subscriber in
             let thread = Thread {
-                testValues.forEach { proxy.receive($0) }
-                proxy.receive(completion: .finished)
+                testValues.forEach { subscriber.receive($0) }
+                subscriber.receive(completion: .finished)
             }
             thread.start()
             return AnyCancellable { thread.cancel() }
@@ -82,6 +82,44 @@ final class CreateTests: XCTestCase {
         sink.cancel()
     }
 
+    func test_if_create_publisher_is_paused_if_demand_is_fulfilled_and_resumed_again() {
+        let demands = [4,2,5]
+        let totalDemand = demands.reduce(0, +)
+
+        var pauseCount = 0
+        let cancellationExpectation = XCTestExpectation(description: "Create publisher cancelled")
+        let publisher = Create<Int, Never> { subscriber, context in
+            var i = 0
+            while !context.cancelled {
+                if context.paused {
+                    pauseCount += 1
+                    context.waitIfPaused()
+                }
+                subscriber.receive(i)
+                i += 1
+            }
+            cancellationExpectation.fulfill()
+        }
+        
+        let subscriber = SubscriberWithManualDemand()
+        publisher.subscribe(subscriber)
+
+        var expectedPauseCount = 0
+        for demand in demands {
+            let expectation = XCTestExpectation(description: "Demand fulfilled")
+            subscriber.setDemandFulfilledExpectation(expectation)
+            subscriber.addDemand(.max(demand))
+            wait(for: [expectation], timeout: 5)
+            Thread.sleep(forTimeInterval: 0.1)
+            expectedPauseCount += 1
+            XCTAssertEqual(pauseCount, expectedPauseCount)
+        }
+        subscriber.cancel()
+        wait(for: [cancellationExpectation], timeout: 5)
+        XCTAssertEqual(Array(0..<totalDemand), subscriber.receivedElements)
+    }
+
+    
     static var allTests = [
         ("test_create_with_cancellation", test_create_with_cancellation),
         ("test_create_with_graceful_finish", test_create_with_graceful_finish)
