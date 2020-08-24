@@ -20,7 +20,7 @@ final class CreateTests: XCTestCase {
         let createPublisher = Create<Int, Never> { subscriber in
             thread = Thread {
                 var i = 0
-                while (!Thread.current.isCancelled) {
+                while !Thread.current.isCancelled {
                     subscriber.receive(i)
                     i += 1
                 }
