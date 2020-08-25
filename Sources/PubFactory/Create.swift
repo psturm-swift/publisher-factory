@@ -11,17 +11,60 @@
 import Foundation
 import Combine
 
+/**
+ A publisher that produces zero or more elements and then eventually  finishes or fails.
+ */
 public struct Create<T, F: Error>: Publisher {
     public typealias Output = T
     public typealias Failure = F
     
     private let internalPublisher: AnyPublisher<T,F>
     
-    public init(closure: @escaping (Proxy<T, F>)->AnyCancellable) {
+    /**
+     Creates a publisher that invokes a closure to start an asynchronous operation which emits zero or more elements and then eventually finishs or fails.
+     - Parameter closure: A closure that gets a proxy and returns a cancellable. The closure is not allowed to block. It should start an asynchronous task which emits zero or more elements and then eventually finishs or fails the stream. It returns a cancellable to stop the asynchronous operation if the subscription is cancelled.
+     - Parameter proxy: A wrapper around the subscriber.
+     
+     ```
+     let publisher =
+         Create<Data?, Error> { subscriber in
+             let task = URLSession.shared.dataTask(with: url) { dataOrNil, _, errorOrNil in
+
+             if let error = errorOrNil {
+                 subscriber.receive(completion: .failure(error))
+             }
+             else {
+                 subscriber.receive(dataOrNil)
+                 subscriber.receive(completion: .finished)
+             }
+
+             task.resume()
+             return AnyCancellable { task.cancel() }
+         }
+     ```
+     */
+    public init(closure: @escaping (_ proxy: Proxy<T, F>)->AnyCancellable) {
         self.internalPublisher = WithProducer(ClosureProducer(closure)).eraseToAnyPublisher()
     }
     
-    public init(closure: @escaping (Proxy<T, F>, Context)->Void) {
+    /**
+     Creates a publisher that invokes a closure which emits zero or more elements and then eventually finishs or fails. The closure might be blocking.
+        - Parameter closure:A closure that gets a proxy and a context. It emits zero or more elements and then eventually finishs or fails the stream. It can use the context to determine if it should pause emitting elements or if it should terminate.
+     - Parameter proxy: A wrapper around the subscriber.
+     - Parameter context: A context that provides the status of the publisher
+     .
+     ```
+     let publisher =
+        Create<Int, Never> { subscriber, context in
+            var i = 0
+            while !context.cancelled {
+                subscriber.receive(i)
+                i += 1
+            }
+        }
+     ```
+     */
+    public init(closure: @escaping (_ proxy: Proxy<T, F>, _ context: Context)->Void) {
         self.internalPublisher = WithProducer(ClosureProducerWithContext(closure)).eraseToAnyPublisher()
     }
 
