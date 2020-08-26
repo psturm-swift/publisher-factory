@@ -28,6 +28,9 @@ protocol ProxyDelegate: class {
     func receive(completion: Subscribers.Completion<Failure>)
 }
 
+/**
+ `Proxy` forwards its receive calls to the connected subscriber. It is used inside the `Create` closures.
+ */
 public struct Proxy<O, F: Error> {
     public typealias Output = O
     public typealias Failure = F
@@ -40,10 +43,20 @@ public struct Proxy<O, F: Error> {
         forwardCompletion = { [weak delegate] in delegate?.receive(completion: $0) }
     }
     
+    /**
+     Sends a new element to the connected subscriber.
+     
+     - Parameter value: Value that is send to the connected subscriber
+     */
     public func receive(_ value: Output) {
         forwardValue(value)
     }
     
+    /**
+     Tells the subscriber that the producer has finished or failed
+     
+     - Parameter completion: Completion that is send to the subscriber.
+     */
     public func receive(completion: Subscribers.Completion<Failure>) {
         forwardCompletion(completion)
     }

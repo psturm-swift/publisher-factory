@@ -11,9 +11,17 @@
 import Foundation
 import Combine
 
+/**
+ Gives access to the publisher state inside a `Create` closure.
+ */
 public protocol Context {
+    /// *True* if the subscriber's demand is *.none*, *false* otherwise
     var paused: Bool { get }
+    
+    /// *True* if the subscription has been cancelled, *false* otherwise
     var cancelled: Bool { get }
+    
+    /// Blocks execution if the subscriber's demand is .none. Resumes if demand is increased or if the subscription has been cancelled
     func waitIfPaused()
 }
 
