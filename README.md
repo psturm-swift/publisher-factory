@@ -1,7 +1,7 @@
 # PubFactory
 Creating a custom publisher with Apple's Combine framework is a task that involves many lines of code. But the code between custom publishers is often very similar. In Combine only the class `Future` allows to build a publisher just from a simple closure. Unfortunately, `Future` does not allow to cancel the task within that closure. Furthermode, `Future` allows exactly one output item only.
 
-`PubFactory` provides the class `Create` to build custom publishers which are fully cancellable and which can emit a stream of items. The idea for `Create` is coming from the *Reactive Extensions*. 
+`PubFactory` provides the class `Create` to build custom publishers which are fully cancellable and which can emit a stream of items.
 
 ## Concept
 Each asynchronous call can be easily transformed into a custom publisher with `PubFactory.Create`. In its simplest form `PubFactory.Create` is initialized with a closure. The closure has one parameter (subscriber) that gives the closure the ability to send out items and a completion (finished or failure) to the connected subscriber down-streams. The only task of the closure is to start an asynchronous operation and to return a cancellable that is able to stop this operation. The class `Create` requires two generics: The output type of the publisher and its error type.
